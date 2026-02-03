@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Bitrix24 Proxy Server v10.0 (полный сбор комментариев: старые + новые)
+Bitrix24 Proxy Server v10.0 (финальная версия для продакшена)
 Собирает ПОЛНУЮ хронологию коммуникаций для претензий и судов
 """
 
 from flask import Flask, request, jsonify
 import requests
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -77,19 +78,19 @@ def proxy():
             if not task_id:
                 return jsonify({'error': 'missing_task_id'}), 400
             
-            # Шаг 1: Получаем старые комментарии
+            # Старые комментарии
             old_comments = call_bitrix('task.commentitem.getlist', {'taskId': task_id})
             if 'error' in old_comments:
                 old_comments = {'result': []}
             
-            # Шаг 2: Получаем задачу для получения chatId
+            # Задача для chatId
             task_response = call_bitrix('tasks.task.get', {'id': task_id})
             if 'error' in task_response:
                 return jsonify({'error': 'task_not_found', 'message': 'Задача не найдена'})
             
             chat_id = task_response.get('result', {}).get('task', {}).get('chatId')
             
-            # Шаг 3: Получаем новые комментарии из чата (если есть)
+            # Новые комментарии из чата
             new_comments = {'result': {'messages': []}}
             if chat_id:
                 new_comments = call_bitrix('im.dialog.messages.get', {
@@ -98,7 +99,7 @@ def proxy():
                     'LIMIT': 100
                 })
             
-            # Шаг 4: Объединяем результаты
+            # Объединяем
             return jsonify({
                 'old_comments': old_comments.get('result', []),
                 'new_comments': new_comments.get('result', {}).get('messages', []),
@@ -107,7 +108,7 @@ def proxy():
                 'total_new': len(new_comments.get('result', {}).get('messages', []))
             })
         
-        # === АКТИВНОСТИ (звонки с записями) ===
+        # === АКТИВНОСТИ ===
         elif action == 'activities':
             owner_id = request.args.get('owner_id')
             if not owner_id:
@@ -159,29 +160,6 @@ def proxy():
 def health():
     return jsonify({'status': 'ok', 'message': 'Bitrix Proxy работает'})
 
-@app.route('/')
-def index():
-    return jsonify({
-        'name': 'Bitrix24 Proxy Server v10.0',
-        'description': 'Полный сбор комментариев: старые + новые (чат)',
-        'working_actions': [
-            'deal', 'contact', 'company', 
-            'tasks', 'task', 'task_comments', 'activities', 
-            'smart_invoice', 'smart_production',
-            'file'
-        ],
-        'example': '/proxy?action=task_comments&task_id=273772'
-    })
-
 if __name__ == '__main__':
-    print("=" * 70)
-    print("🚀 Bitrix24 Proxy Server v10.0 (полный сбор комментариев)")
-    print("=" * 70)
-    print("✅ Сервер запущен на: http://localhost:5001")
-    print("📊 Проверка: http://localhost:5001/health")
-    print("=" * 70)
-    print("💡 Сбор комментариев:")
-    print("   • Старые комментарии → task.commentitem.getlist")
-    print("   • Новые комментарии → im.dialog.messages.get (чат)")
-    print("=" * 70)
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port, debug=False)
