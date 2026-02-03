@@ -120,7 +120,7 @@ def proxy():
                 'select[]': '*'
             }))
         
-        # === СМУРТ-ПРОЦЕСС: СЧЁТ ===
+        # === СМАРТ-ПРОЦЕСС: СЧЁТ ===
         elif action == 'smart_invoice':
             parent_id = request.args.get('parent_id')
             if not parent_id:
@@ -131,7 +131,7 @@ def proxy():
                 'select[]': '*'
             }))
         
-        # === СМУРТ-ПРОЦЕСС: ПРОИЗВОДСТВО ===
+        # === СМАРТ-ПРОЦЕСС: ПРОИЗВОДСТВО ===
         elif action == 'smart_production':
             parent_id = request.args.get('parent_id')
             if not parent_id:
